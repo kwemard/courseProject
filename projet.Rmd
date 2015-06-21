@@ -1,0 +1,104 @@
+---
+title: "Prediction "
+author: "Marius "
+date: "21 juin 2015"
+output: html_document
+---
+
+The goal of the project is to predict the manner in which the 6 participants did the exercise. We first clean data by removing columns with NA or empty values.
+We choose predictors: accelerometers on the belt, forearm, arm, and dumbell of 6 participants, how they perform barbell lifts (correctly and incorrectly). All scripts are gathered at the end.
+
+# Model
+We have choose to predict manner in which they did the exercise by using random forests model, which is a machine learning algorithm, and is appropriate with the relatively high number of variables in this study. In this context, random forests avoid overfitting. 
+
+# Cross validation
+
+In order to estimate error,  we randomly split data into 2 sets (training and testing) run the model on the  training set and evaluate the error on the testing set. We repeated it 10 times and averaged. The  expected out of sample error is 0.995.
+
+# Prediction on the new data
+Applying the algorithm below give this result :
+```{r,echo=FALSE}
+c("B" ,"A" ,"B" ,"A" ,"A","E", "D" ,"B", "A" ,"A", "B","C","B", 
+"A" ,"E", "E" ,"A", "B","B", "B")
+```
+# Cleaning data
+```{r}
+# read data
+pml.training <- read.csv("~/Desktop/dossier sans titre/pml-training.csv", header=FALSE, quote="", stringsAsFactors=FALSE)
+
+# Name of id column
+pml.training[1,][1]="id"
+
+# Name of the columns (the first line is the name of columns) 
+names(pml.training)=pml.training[1,]
+pml.training=pml.training[-1,]
+# Remove columns with NA or """" ("\"\"\"\"")
+pml.training = pml.training[,apply(is.na(pml.training),2,sum) != 19216]
+pml.training_tidy=pml.training[,apply(pml.training=="\"\"\"\"",2,sum) == 0]
+
+```
+
+
+
+
+
+# Cross validation error
+ 
+```{r,eval=FALSE }
+# We randomly split data into 2 sets (training and testing) run the model on the 
+# training set and evaluate the error on the testing set. We repeated it 10 times.
+library(randomForest)
+error=numeric(10)
+for(i in 1:10){
+    
+    train=sample(1:nrow(data_train),floor(nrow(data_train)*1/2),
+                 replace=FALSE)
+    
+    training=data_train[train,]
+    testing=data_train[-train,]
+     
+    fit=randomForest(X..classe...~.,data=training)
+    error[i]=confusionMatrix(testing$X..classe...,predict(fit,testing))$overall[1]
+   
+    
+}
+```
+
+
+# Prediction on the new data
+
+```{r,eval=FALSE}
+# Model
+train=sample(1:nrow(data_train),floor(nrow(data_train)*3/4),
+                 replace=FALSE)
+    
+    training=data_train[train,]
+    testing=data_train[-train,]
+     
+    fit=randomForest(X..classe...~.,data=training)
+# New data
+pml.testing <- read.csv("~/Downloads/pml-testing.csv", header=TRUE, quote="",stringsAsFactors=FALSE)
+# Choose the sames predictors as in training data
+pml.testing=pml.testing[, names(pml.testing) %in% names(training)]
+
+# Convert columns to the same type as in the training
+data1=apply(pml.testing[,-c(1,2)],2,as.numeric)
+
+data2=apply(pml.testing[,c(1,2)],2,as.factor)
+
+data_to_pred=data.frame(data2,data1)
+
+data_to_pred=data_to_pred[,names(training)[-1]]
+
+data_to_pred$X..new_window..=factor(data_to_pred$X..new_window..,levels=c("\"\"no\"\"","\"\"yes\"\""))
+# result
+pred2=predict(fit,data_to_pred)
+```
+
+
+# Data description
+```{r}
+barplot(table(pml.training[,length(names(pml.training))])/sum(table(pml.training[,length(names(pml.training))])),ylab="fraquency %",
+main="Frequency of classes",col=c(1:5))
+```
+
